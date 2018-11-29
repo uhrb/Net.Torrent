@@ -9,6 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Net.Torrent.Tests", "Net.To
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5ED2A488-314C-4464-A2CE-998E82F8E7BD}"
 	ProjectSection(SolutionItems) = preProject
+		.travis.yml = .travis.yml
 		LICENSE.md = LICENSE.md
 		README.md = README.md
 	EndProjectSection
