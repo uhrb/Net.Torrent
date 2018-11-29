@@ -1,4 +1,5 @@
 # Net.Torrent
+[![Build Status](https://travis-ci.com/l0nley/Net.Torrent.svg?branch=master)](https://travis-ci.com/l0nley/Net.Torrent)
 Net.Torrent is torrent files (and any b-encoded files) parsing library for .NET Core
 Features:
   - Serialize/Deserialize b-encoded entities (including torrent files)
