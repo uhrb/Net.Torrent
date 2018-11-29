@@ -5,15 +5,35 @@ using System.Text;
 
 namespace Net.Torrent
 {
+    /// <summary>
+    /// Torrent file class
+    /// </summary>
     public class Torrent : IExtensible
     {
-        public Dictionary<BString, IBEncodedObject> Extensions { get; }
+        /// <inheritdoc/>
+        public SortedDictionary<BString, IBEncodedObject> Extensions { get; }
+
+        /// <summary>
+        /// Announce URL
+        /// </summary>
         public Uri Announce { get; set; }
+
+        /// <summary>
+        /// Torrent info section
+        /// </summary>
         public TorrentInfo Info { get; set; }
+
+        /// <summary>
+        /// String encoding (encoding key)
+        /// </summary>
         public Encoding Encoding { get; set; }
+
+        /// <summary>
+        /// Creates instance of <see cref="Torrent"/>
+        /// </summary>
         public Torrent()
         {
-            Extensions = new Dictionary<BString, IBEncodedObject>();
+            Extensions = new SortedDictionary<BString, IBEncodedObject>(BStringComparer.Instance);
         }
     }
 }

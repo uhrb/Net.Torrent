@@ -1,26 +1,35 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Net.Torrent.BEncode
 {
-    public class BList : IBEncodedObject, IEnumerable<IBEncodedObject>
+    public class BList : List<IBEncodedObject>, IBEncodedObject
     {
+        /// <inheritdoc/>
         public BEncodeType Type => BEncodeType.List;
 
-        internal List<IBEncodedObject> Objects { get; set; }
-
-        public IBEncodedObject this[int index]
+        /// <summary>
+        /// Creates new instance of <see cref="BList"/>
+        /// </summary>
+        public BList(): base()
         {
-            get
-            {
-                return Objects[index];
-            }
         }
 
-        public int Count => Objects.Count;
+        /// <summary>
+        /// Creates new instance of <see cref="BList"/>
+        /// </summary>
+        /// <param name="capacity">Predefined capacity</param>
+        public BList(int capacity): base(capacity)
+        {
+        }
 
-        public IEnumerator<IBEncodedObject> GetEnumerator() => Objects.GetEnumerator();
+        /// <summary>
+        /// Creates new instance of <see cref="BList"/>
+        /// </summary>
+        /// <param name="objects">List to fill from</param>
+        public BList(IList<IBEncodedObject> objects): base(objects == null ? 0 : objects.Count)
+        {
+            AddRange(objects);
+        }
 
-        IEnumerator IEnumerable.GetEnumerator() => Objects.GetEnumerator();
     }
 }

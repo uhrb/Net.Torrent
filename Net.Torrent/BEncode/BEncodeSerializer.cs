@@ -5,8 +5,16 @@ using System.Text;
 
 namespace Net.Torrent.BEncode
 {
+    /// <summary>
+    /// Serializer/Deserializer to/from b-encode format
+    /// </summary>
     public class BEncodeSerializer
     {
+        /// <summary>
+        /// Serialize object into stream
+        /// </summary>
+        /// <param name="stream">Stream, to serialize to</param>
+        /// <param name="obj"></param>
         public void Serialize(Stream stream, IBEncodedObject obj)
         {
             WriteElement(stream, obj);
@@ -41,16 +49,16 @@ namespace Net.Torrent.BEncode
 
         private void WriteString(Stream stream, BString str)
         {
-            var slen = str.Bytes.Length.ToString();
+            var slen = str._bytes.Length.ToString();
             var len = Encoding.ASCII.GetBytes(slen);
             stream.Write(len);
             stream.WriteByte((byte)':');
-            stream.Write(str.Bytes);
+            stream.Write(str._bytes);
         }
 
         private void WriteNumber(Stream stream, BNumber number)
         {
-            var bytes = Encoding.ASCII.GetBytes(number.AsciiValue);
+            var bytes = Encoding.ASCII.GetBytes(number._asciiValue);
             stream.WriteByte((byte)'i');
             stream.Write(bytes);
             stream.WriteByte((byte)'e');
@@ -59,7 +67,7 @@ namespace Net.Torrent.BEncode
         private void WriteList(Stream stream, BList list)
         {
             stream.WriteByte((byte)'l');
-            foreach (var element in list.Objects)
+            foreach (var element in list)
             {
                 WriteElement(stream, element);
             }
@@ -116,10 +124,7 @@ namespace Net.Torrent.BEncode
                 dict.Add(key, value);
             }
             cursor++;
-            return new BDictionary
-            {
-                Dictionary = dict
-            };
+            return new BDictionary(dict);
         }
 
         private BList ReadList(ReadOnlySpan<byte> bytes, ref int cursor)
@@ -131,10 +136,7 @@ namespace Net.Torrent.BEncode
                 lst.Add(ReadElement(bytes, ref cursor));
             }
             cursor++;
-            return new BList
-            {
-                Objects = lst
-            };
+            return new BList(lst);
         }
 
         private BString ReadString(ReadOnlySpan<byte> bytes, ref int cursor)
@@ -163,10 +165,7 @@ namespace Net.Torrent.BEncode
             }
             var selected = bytes.Slice(start, cursor - start);
             cursor++;
-            return new BNumber
-            {
-                AsciiValue = Encoding.ASCII.GetString(selected)
-            };
+            return new BNumber(Encoding.ASCII.GetString(selected));
         }
     }
 }

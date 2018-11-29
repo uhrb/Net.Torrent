@@ -1,69 +1,102 @@
 ﻿using System.Globalization;
-using System.Text;
 
 namespace Net.Torrent.BEncode
 {
     public class BNumber : IBEncodedObject
     {
+        /// <inheritdoc/>
         public BEncodeType Type => BEncodeType.Number;
+        internal string _asciiValue { get; private set; }
 
-        internal BNumber()
+        internal BNumber(string value)
         {
+            _asciiValue = value;
         }
 
+        // <summary>
+        /// Creates instance of <see cref="BNumber"/> with supplied value
+        /// </summary>
         public BNumber(int value)
         {
-            AsciiValue = Encoding.ASCII.GetString(
-                Encoding.Convert(Encoding.Default, Encoding.ASCII, Encoding.Default.GetBytes(value.ToString(CultureInfo.InvariantCulture))));
+            _asciiValue = value.ToString(CultureInfo.InvariantCulture);
         }
 
+        // <summary>
+        /// Creates instance of <see cref="BNumber"/> with supplied value
+        /// </summary>
         public BNumber(long value)
         {
-            AsciiValue = Encoding.ASCII.GetString(
-                Encoding.Convert(Encoding.Default, Encoding.ASCII, Encoding.Default.GetBytes(value.ToString(CultureInfo.InvariantCulture))));
+            _asciiValue = value.ToString(CultureInfo.InvariantCulture);
         }
 
+        // <summary>
+        /// Creates instance of <see cref="BNumber"/> with supplied value
+        /// </summary>
         public BNumber(double value)
         {
-            AsciiValue = Encoding.ASCII.GetString(
-                Encoding.Convert(Encoding.Default, Encoding.ASCII, Encoding.Default.GetBytes(value.ToString(CultureInfo.InvariantCulture))));
+            _asciiValue = value.ToString(CultureInfo.InvariantCulture);
         }
 
-        internal string AsciiValue { get; set; }
+        public static explicit operator BNumber(int value)
+        {
+            return new BNumber(value);
+        }
+
+        public static explicit operator BNumber(long value)
+        {
+            return new BNumber(value);
+        }
+
+        public static explicit operator BNumber(double value)
+        {
+            return new BNumber(value);
+        }
+
+        public static explicit operator BNumber(uint value)
+        {
+            return new BNumber(value);
+        }
+
+        public static explicit operator BNumber(ulong value)
+        {
+            return new BNumber(value);
+        }
 
         public static implicit operator int(BNumber number)
         {
-            return int.Parse(number.AsciiValue, CultureInfo.InvariantCulture);
+            return int.Parse(number._asciiValue, CultureInfo.InvariantCulture);
         }
 
         public static implicit operator long(BNumber number)
         {
-            return long.Parse(number.AsciiValue, CultureInfo.InvariantCulture);
+            return long.Parse(number._asciiValue, CultureInfo.InvariantCulture);
         }
 
         public static implicit operator uint(BNumber number)
         {
-            return uint.Parse(number.AsciiValue, CultureInfo.InvariantCulture);
+            return uint.Parse(number._asciiValue, CultureInfo.InvariantCulture);
         }
 
         public static implicit operator ulong(BNumber number)
         {
-            return ulong.Parse(number.AsciiValue, CultureInfo.InvariantCulture);
+            return ulong.Parse(number._asciiValue, CultureInfo.InvariantCulture);
         }
 
         public static implicit operator double(BNumber number)
         {
-            return double.Parse(number.AsciiValue, CultureInfo.InvariantCulture);
+            return double.Parse(number._asciiValue, CultureInfo.InvariantCulture);
         }
 
+        /// <inheritdoc/>
         public override bool Equals(object obj)
         {
-            return AsciiValue == ((BNumber)obj).AsciiValue;
+            return _asciiValue == ((BNumber)obj)._asciiValue;
         }
 
+        /// <inheritdoc/>
         public override int GetHashCode()
         {
-            return AsciiValue.GetHashCode();
+            return _asciiValue.GetHashCode();
         }
     }
 }

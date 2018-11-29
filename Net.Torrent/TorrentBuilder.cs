@@ -8,6 +8,9 @@ using System.Text;
 
 namespace Net.Torrent
 {
+    /// <summary>
+    /// Allows to build torrents
+    /// </summary>
     public class TorrentBuilder
     {
         private readonly Encoding _encoding;
@@ -20,6 +23,11 @@ namespace Net.Torrent
         private Uri _announce;
         private byte[] _pieces;
 
+        /// <summary>
+        /// Creates instance of <see cref="TorrentBuilder"/>
+        /// </summary>
+        /// <param name="stringEncoding">Strings encoding</param>
+        /// <exception cref="ArgumentNullException">When <paramref name="stringEncoding"/> is null</exception>
         public TorrentBuilder(Encoding stringEncoding)
         {
             _encoding = stringEncoding ?? throw new ArgumentNullException(nameof(stringEncoding));
@@ -28,52 +36,75 @@ namespace Net.Torrent
             _files = new List<(string, long)>();
         }
 
+        /// <summary>
+        /// Sets Name key
+        /// </summary>
+        /// <param name="name">Name key value</param>
         public void SetName(string name)
         {
             _name = name;
         }
 
+        /// <summary>
+        /// Sets Announce key value
+        /// </summary>
+        /// <param name="announce">Announce URL</param>
+        /// <exception cref="ArgumentNullException">When <paramref name="announce"/> is null</exception>
         public void SetAnnounce(Uri announce)
         {
             _announce = announce ?? throw new ArgumentNullException(nameof(announce));
         }
 
+        /// <summary>
+        /// Sets main section extension value. If value already exists - it will be overwritten
+        /// </summary>
+        /// <param name="key">Extension key</param>
+        /// <param name="value">Extension value</param>
         public void SetExtension(BString key, IBEncodedObject value)
         {
-            if (_main.ContainsKey(key))
+            if(!_main.TryAdd(key, value))
             {
                 _main[key] = value;
             }
-            else
-            {
-                _main.Add(key, value);
-                _main.Add(key, value);
-            }
         }
 
+        /// <summary>
+        /// Sets Info section extension value. If value already exists - it will be overwritten
+        /// </summary>
+        /// <param name="key">Extension key</param>
+        /// <param name="value">Extension value</param>
         public void SetInfoExtension(BString key, IBEncodedObject value)
         {
-            if (_info.ContainsKey(key))
+            if(!_info.TryAdd(key, value))
             {
                 _info[key] = value;
             }
-            else
-            {
-                _info.Add(key, value);
-            }
         }
 
+        /// <summary>
+        /// Sets piece length
+        /// </summary>
+        /// <param name="length">Length of piece</param>
         public void SetPieceLength(uint length)
         {
             _pieceLength = length;
         }
 
+        /// <summary>
+        /// Clears files. Pieces SHA1 hashes will be purged by this operation
+        /// </summary>
         public void ClearFiles()
         {
             _files.Clear();
             _pieces = null;
         }
 
+        /// <summary>
+        /// Adds file to torrent
+        /// </summary>
+        /// <param name="relativePath">Relative path inside torrent</param>
+        /// <param name="length">File length</param>
+        /// <exception cref="ArgumentException">When item with <paramref name="relativePath"/> already exists</exception>
         public void AddFile(string relativePath, long length)
         {
             if (_files.Any(_ => _.Item1 == relativePath))
@@ -83,16 +114,27 @@ namespace Net.Torrent
             _files.Add((relativePath, length));
         }
 
+        /// <summary>
+        /// Calculates pieces sha
+        /// </summary>
+        /// <param name="provider"><see cref="IFileStreamProvider"/></param>
+        /// <exception cref="ArgumentNullException">When <paramref name="provider"/> is null</exception>
+        /// <exception cref="InvalidOperationException">When number of files is zero</exception>
+        /// <exception cref="InvalidDataException">When <paramref name="provider"/> was not able to resolve the stream</exception>
         public void CalculatePieces(IFileStreamProvider provider)
         {
             provider = provider ?? throw new ArgumentNullException(nameof(provider));
+            if(_files.Count == 0)
+            {
+                throw new InvalidOperationException("Cannot calculate SHA1s when files amount is zero");
+            }
             var files = new List<(Stream, long, bool)>(_files.Count);
             foreach (var (path, len) in _files)
             {
                 var stream = provider.Resolve(path, out bool autoClose);
                 if (stream == null)
                 {
-                    throw new InvalidOperationException($"File stream provider was not able to resolve {path}");
+                    throw new InvalidDataException($"File stream provider was not able to resolve {path}");
                 }
                 files.Add((stream, len, autoClose));
             }
@@ -117,6 +159,10 @@ namespace Net.Torrent
             }
         }
 
+        /// <summary>
+        /// Builds torrent from current state
+        /// </summary>
+        /// <returns><see cref="Torrent"/></returns>
         public Torrent Build()
         {
             var encoding = _encoding ?? Encoding.UTF8;
@@ -133,14 +179,11 @@ namespace Net.Torrent
             }
             foreach (var (key, value) in _files)
             {
-                var pathlist = new BList
-                {
-                    Objects = new List<IBEncodedObject>(_files.Count)
-                };
+                var pathlist = new BList(_files.Count);
                 foreach (var part in key.Split('/'))
                 {
                     var s = new BString(part, encoding);
-                    pathlist.Objects.Add(s);
+                    pathlist.Add(s);
                 }
                 info.Files.Add((pathlist, new BNumber(value)));
             }
@@ -160,6 +203,13 @@ namespace Net.Torrent
             return torrent;
         }
 
+        /// <summary>
+        /// Creates instance of <see cref="TorrentBuilder"/> from existing torrent file. 
+        /// If Encoding is not specified in torrent, UTF-8 used.
+        /// </summary>
+        /// <param name="torrent"><see cref="Torrent"/> to create from. </param>
+        /// <returns>Torrent builder instance</returns>
+        /// <exception cref="ArgumentNullException">When <paramref name="torrent"/> is null</exception>
         public static TorrentBuilder FromExisting(Torrent torrent)
         {
             torrent = torrent ?? throw new ArgumentNullException(nameof(torrent));
@@ -169,9 +219,9 @@ namespace Net.Torrent
                 _name = torrent.Info.Name.ToString(),
                 _announce = torrent.Announce,
                 _pieceLength = torrent.Info.PieceLength,
-                _pieces = new byte[torrent.Info.Pieces.Bytes.Length]
+                _pieces = new byte[torrent.Info.Pieces._bytes.Length]
             };
-            Array.Copy(torrent.Info.Pieces.Bytes, builder._pieces, torrent.Info.Pieces.Bytes.Length);
+            Array.Copy(torrent.Info.Pieces._bytes, builder._pieces, torrent.Info.Pieces._bytes.Length);
             foreach (var (key, value) in torrent.Extensions)
             {
                 builder._main.Add(key, value);

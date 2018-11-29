@@ -118,7 +118,7 @@ namespace Net.Torrent.Test
 
         [Theory]
         [InlineData("d3:foo3:bare", new [] { "foo", "bar" })]
-        [InlineData("d3:foo3:bar3:buz3:tooe", new [] {"foo", "bar", "buz", "too"})]
+        [InlineData("d3:bar3:foo3:buz3:tooe", new [] {"bar", "foo", "buz", "too"})]
         public void ReadDictionarySimple(string input, string[] values)
         {
             var bytes = new ReadOnlySpan<byte>(Encoding.ASCII.GetBytes(input));

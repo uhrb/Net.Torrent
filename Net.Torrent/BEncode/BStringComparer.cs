@@ -3,14 +3,21 @@ using System.Text;
 
 namespace Net.Torrent.BEncode
 {
-    internal sealed class BStringComparer : IComparer<BString>
+    /// <summary>
+    /// BString comparer to be used with dictionaries
+    /// </summary>
+    public sealed class BStringComparer : IComparer<BString>
     {
         private BStringComparer()
         {
         }
 
+        /// <summary>
+        /// Instance of comparer
+        /// </summary>
         public static BStringComparer Instance => new BStringComparer();
 
+        /// <inheritdoc/>
         public int Compare(BString str1, BString str2)
         {
             if (ReferenceEquals(str1, str2))
@@ -27,7 +34,8 @@ namespace Net.Torrent.BEncode
             {
                 return 1;
             }
-            return string.Compare(Encoding.ASCII.GetString(str1.Bytes), Encoding.ASCII.GetString(str2.Bytes));
+
+            return string.Compare(str1.ToString(Encoding.ASCII), str2.ToString(Encoding.ASCII));
         }
     }
 }

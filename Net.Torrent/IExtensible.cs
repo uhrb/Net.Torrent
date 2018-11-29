@@ -3,8 +3,14 @@ using System.Collections.Generic;
 
 namespace Net.Torrent
 {
+    /// <summary>
+    /// General extensible object
+    /// </summary>
     public interface IExtensible
     {
-        Dictionary<BString, IBEncodedObject> Extensions { get; }
+        /// <summary>
+        /// Extensions dictionary
+        /// </summary>
+        SortedDictionary<BString, IBEncodedObject> Extensions { get; }
     }
 }

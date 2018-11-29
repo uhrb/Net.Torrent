@@ -3,6 +3,9 @@
 namespace Net.Torrent.BEncode
 {
 
+    /// <summary>
+    /// General parsing exception
+    /// </summary>
     [Serializable]
     public class ParsingException : Exception
     {

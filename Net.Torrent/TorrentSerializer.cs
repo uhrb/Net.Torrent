@@ -1,27 +1,46 @@
 ﻿using Net.Torrent.BEncode;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace Net.Torrent
 {
+    /// <summary>
+    /// Torrent serializer/deserializer
+    /// </summary>
     public class TorrentSerializer
     {
         private const string MalformedTorrent = "Mailformed torrent";
 
+        /// <summary>
+        /// Default encoding used for strings
+        /// </summary>
         public Encoding DefaultStringEncoding { get; }
 
+        /// <summary>
+        /// Creates instance of <see cref="TorrentSerializer"/> with default encoding
+        /// </summary>
         public TorrentSerializer() : this(Encoding.UTF8)
         {
         }
 
+        /// <summary>
+        /// Creates instance of <see cref="TorrentSerializer"/>
+        /// </summary>
+        /// <param name="defaultStringEncoding">Default string encoding</param>
+        /// <exception cref="ArgumentNullException">When <paramref name="defaultStringEncoding"/> is null</exception>
         public TorrentSerializer(Encoding defaultStringEncoding)
         {
             DefaultStringEncoding = defaultStringEncoding ?? throw new ArgumentNullException(nameof(defaultStringEncoding));
         }
 
+        /// <summary>
+        /// Serializes torrent to stream
+        /// </summary>
+        /// <param name="stream"><see cref="Stream"/> to serialize to</param>
+        /// <param name="torrent"><see cref="Torrent"/> to serialize</param>
+        /// <exception cref="ArgumentNullException">When <paramref name="stream"/> or <paramref name="torrent"/> is null</exception>
         public void Serialize(Stream stream, Torrent torrent)
         {
             torrent = torrent ?? throw new ArgumentNullException(nameof(torrent));
@@ -31,67 +50,86 @@ namespace Net.Torrent
             writer.Serialize(stream, dic);
         }
 
+        /// <summary>
+        /// Deserializes torrent from memory
+        /// </summary>
+        /// <param name="torrent">Torrent bytes</param>
+        /// <returns><see cref="Torrent"/> instance</returns>
+        /// <exception cref="ParsingException">When torrent malformed</exception>
+        public Torrent Deserialize(ReadOnlySpan<byte> torrent)
+        {
+            return Parse(torrent, 0);
+        }
+
+        /// <summary>
+        /// Deserialize torrent from stream
+        /// </summary>
+        /// <param name="stream">Stream</param>
+        /// <returns><see cref="Torrent"/></returns>
+        /// <exception cref="ArgumentNullException">When <paramref name="stream"/> is null</exception>
+        public Torrent Deserialize(Stream stream)
+        {
+            stream = stream ?? throw new ArgumentNullException(nameof(stream));
+            using (var ms = new MemoryStream())
+            {
+                stream.CopyTo(ms);
+                return Deserialize(ms.ToArray());
+            }
+        }
+
         private static BDictionary GetDictionary(Torrent torrent)
         {
             var encoding = torrent.Encoding ?? Encoding.UTF8;
             var dic = new BDictionary
             {
-                Dictionary = new SortedDictionary<BString, IBEncodedObject>(BStringComparer.Instance)
+                { Constants.AnnounceKey, new BString(torrent.Announce.ToString(), encoding) },
+                { Constants.EncodingKey, new BString(torrent.Encoding.WebName, encoding) }
             };
-            dic.Dictionary.Add(Constants.AnnounceKey, new BString(torrent.Announce.ToString(), encoding));
-            dic.Dictionary.Add(Constants.EncodingKey, new BString(torrent.Encoding.WebName, encoding));
+
             foreach (var (key, value) in torrent.Extensions)
             {
-                dic.Dictionary.Add(key, value);
+                dic.Add(key, value);
             }
+
             var infoDic = new BDictionary
             {
-                Dictionary = new SortedDictionary<BString, IBEncodedObject>(BStringComparer.Instance)
+                { Constants.InfoPieceLengthKey, torrent.Info.PieceLength },
+                { Constants.InfoPiecesKey, torrent.Info.Pieces }
             };
-            foreach (var (key, value) in torrent.Info.Extensions)
-            {
-                infoDic.Dictionary.Add(key, value);
-            }
+
             if (torrent.Info.Name != null)
             {
-                infoDic.Dictionary.Add(Constants.InfoNameKey, torrent.Info.Name);
+                infoDic.Add(Constants.InfoNameKey, torrent.Info.Name);
             }
-            infoDic.Dictionary.Add(Constants.InfoPieceLengthKey, torrent.Info.PieceLength);
-            infoDic.Dictionary.Add(Constants.InfoPiecesKey, torrent.Info.Pieces);
+
+            foreach (var (key, value) in torrent.Info.Extensions)
+            {
+                infoDic.Add(key, value);
+            }
+
             if (torrent.Info.Files.Count == 1)
             {
                 var (path, len) = torrent.Info.Files[0];
-                infoDic.Dictionary.Add(Constants.InfoLengthKey, len);
+                infoDic.Add(Constants.InfoLengthKey, len);
             }
             else
             {
-                var lst = new BList
-                {
-                    Objects = new List<IBEncodedObject>(torrent.Info.Files.Count)
-                };
+                var lst = new BList(torrent.Info.Files.Count);
                 foreach (var (key, value) in torrent.Info.Files)
                 {
                     var fdic = new BDictionary
                     {
-                        Dictionary = new SortedDictionary<BString, IBEncodedObject>(BStringComparer.Instance)
-                        {
-                            { Constants.InfoFilePathKey, key },
-                            { Constants.InfoFileLengthKey, value }
-                        }
+                        { Constants.InfoFilePathKey, key },
+                        { Constants.InfoFileLengthKey, value }
                     };
-                    lst.Objects.Add(fdic);
+                    lst.Add(fdic);
                 }
-                infoDic.Dictionary.Add(Constants.InfoFilesKey, lst);
+                infoDic.Add(Constants.InfoFilesKey, lst);
             }
 
-            dic.Dictionary.Add(Constants.InfoKey, infoDic);
+            dic.Add(Constants.InfoKey, infoDic);
 
             return dic;
-        }
-
-        public Torrent Deserialize(ReadOnlySpan<byte> torrent)
-        {
-            return Parse(torrent, 0);
         }
 
         private Torrent Parse(ReadOnlySpan<byte> bytes, int offset)
