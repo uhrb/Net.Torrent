@@ -1,4 +1,5 @@
 ﻿using Net.Torrent.BEncode;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -90,6 +91,24 @@ namespace Net.Torrent.Test
             builder.CalculatePieces(new FSProvider());
             var builded = builder.Build();
             Assert.Equal(builded.Info.Pieces, torrent.Info.Pieces);
+        }
+
+        [Fact]
+        public void InfoHashCorrect()
+        {
+            byte[] bytes;
+            using (var ms = new MemoryStream())
+            {
+                using (var file = File.Open("torrent.torrent", FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    file.CopyTo(ms);
+                }
+                bytes = ms.ToArray();
+            }
+            var torrent = new TorrentSerializer().Deserialize(bytes);
+            var expected = "6f69efbd1d5aeea35aeb90365afb949d8d0f3c09";
+            var hash = torrent.GetInfoHash();
+            Assert.Equal(expected, BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant());
         }
 
         private class FSProvider : IFileStreamProvider

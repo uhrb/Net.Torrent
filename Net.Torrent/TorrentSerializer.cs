@@ -1,7 +1,6 @@
 ﻿using Net.Torrent.BEncode;
 using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace Net.Torrent
@@ -11,8 +10,6 @@ namespace Net.Torrent
     /// </summary>
     public class TorrentSerializer
     {
-        private const string MalformedTorrent = "Mailformed torrent";
-
         /// <summary>
         /// Default encoding used for strings
         /// </summary>
@@ -45,7 +42,7 @@ namespace Net.Torrent
         {
             torrent = torrent ?? throw new ArgumentNullException(nameof(torrent));
             stream = stream ?? throw new ArgumentNullException(nameof(stream));
-            var dic = GetDictionary(torrent);
+            var dic = ParserHelper.GetTorrentDictionary(torrent);
             var writer = new BEncodeSerializer();
             writer.Serialize(stream, dic);
         }
@@ -58,7 +55,7 @@ namespace Net.Torrent
         /// <exception cref="ParsingException">When torrent malformed</exception>
         public Torrent Deserialize(ReadOnlySpan<byte> torrent)
         {
-            return Parse(torrent, 0);
+            return ParserHelper.ParseTorrent(torrent, 0, DefaultStringEncoding);
         }
 
         /// <summary>
@@ -77,163 +74,6 @@ namespace Net.Torrent
             }
         }
 
-        private static BDictionary GetDictionary(Torrent torrent)
-        {
-            var encoding = torrent.Encoding ?? Encoding.UTF8;
-            var dic = new BDictionary
-            {
-                { Constants.AnnounceKey, new BString(torrent.Announce.ToString(), encoding) },
-                { Constants.EncodingKey, new BString(torrent.Encoding.WebName, encoding) }
-            };
 
-            foreach (var (key, value) in torrent.Extensions)
-            {
-                dic.Add(key, value);
-            }
-
-            var infoDic = new BDictionary
-            {
-                { Constants.InfoPieceLengthKey, torrent.Info.PieceLength },
-                { Constants.InfoPiecesKey, torrent.Info.Pieces }
-            };
-
-            if (torrent.Info.Name != null)
-            {
-                infoDic.Add(Constants.InfoNameKey, torrent.Info.Name);
-            }
-
-            foreach (var (key, value) in torrent.Info.Extensions)
-            {
-                infoDic.Add(key, value);
-            }
-
-            if (torrent.Info.Files.Count == 1)
-            {
-                var (path, len) = torrent.Info.Files[0];
-                infoDic.Add(Constants.InfoLengthKey, len);
-            }
-            else
-            {
-                var lst = new BList(torrent.Info.Files.Count);
-                foreach (var (key, value) in torrent.Info.Files)
-                {
-                    var fdic = new BDictionary
-                    {
-                        { Constants.InfoFilePathKey, key },
-                        { Constants.InfoFileLengthKey, value }
-                    };
-                    lst.Add(fdic);
-                }
-                infoDic.Add(Constants.InfoFilesKey, lst);
-            }
-
-            dic.Add(Constants.InfoKey, infoDic);
-
-            return dic;
-        }
-
-        private Torrent Parse(ReadOnlySpan<byte> bytes, int offset)
-        {
-            var reader = new BEncodeSerializer();
-            var dictionary = (BDictionary)reader.Deserialize(bytes, ref offset);
-            var torrent = new Torrent();
-            var stringEncoding = Encoding.UTF8;
-            if (dictionary.TryGetValue(Constants.EncodingKey, out IBEncodedObject enc))
-            {
-                stringEncoding = Encoding.GetEncoding((BString)enc);
-                torrent.Encoding = stringEncoding;
-            }
-            else
-            {
-                stringEncoding = DefaultStringEncoding;
-            }
-
-            foreach (var (key, value) in dictionary)
-            {
-                if (key == Constants.AnnounceKey)
-                {
-                    var announce = (BString)value;
-                    if (string.IsNullOrEmpty(announce))
-                    {
-                        throw new ParsingException(MalformedTorrent);
-                    }
-                    torrent.Announce = new Uri((BString)value);
-                }
-                else if (key == Constants.InfoKey)
-                {
-                    var dic = (BDictionary)value;
-                    torrent.Info = ParseInfoSection(dic);
-                }
-                else if (key == Constants.EncodingKey)
-                {
-                    // do nothing;
-                }
-                else
-                {
-                    torrent.Extensions.Add(key, value);
-                }
-            }
-
-            if (torrent.Info == null)
-            {
-                throw new ParsingException(MalformedTorrent);
-            }
-
-            return torrent;
-        }
-
-        private TorrentInfo ParseInfoSection(BDictionary dic)
-        {
-            var info = new TorrentInfo();
-            bool? singleFile = null;
-            foreach (var (key, value) in dic)
-            {
-                if (key == Constants.InfoNameKey)
-                {
-                    info.Name = (BString)value;
-                }
-                else if (key == Constants.InfoLengthKey)
-                {
-                    if (singleFile == false)
-                    {
-                        throw new ParsingException(MalformedTorrent);
-                    }
-                    singleFile = true;
-                    info.Files.Add((null, (BNumber)value));
-                }
-                else if (key == Constants.InfoPieceLengthKey)
-                {
-                    info.PieceLength = (BNumber)value;
-                }
-                else if (key == Constants.InfoPiecesKey)
-                {
-                    info.Pieces = (BString)value;
-                }
-                else if (key == Constants.InfoFilesKey)
-                {
-                    if (singleFile == true)
-                    {
-                        throw new ParsingException(MalformedTorrent);
-                    }
-                    singleFile = false;
-                    info.Files.AddRange(((BList)value).Select(_ =>
-                    {
-                        var dict = (BDictionary)_;
-                        return ((BList)dict[Constants.InfoFilePathKey], (BNumber)dict[Constants.InfoFileLengthKey]);
-                    }));
-                }
-                else
-                {
-                    info.Extensions.Add(key, value);
-                }
-            }
-
-            if (info.Files.Count <= 0 || info.PieceLength <= 0 || info.Pieces == null)
-            {
-                throw new ParsingException(MalformedTorrent);
-            }
-
-            return info;
-        }
     }
 }
