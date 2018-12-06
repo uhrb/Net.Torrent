@@ -3,7 +3,14 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <LangVersion>7.2</LangVersion>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
+    <Authors>Uladzimir Harabtsou &lt;hofvl0nley@gmail.com&gt;</Authors>
+    <Copyright>Uladzimir Harabtsout</Copyright>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/l0nley/Net.Torrent/master/LICENSE.md</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/l0nley/Net.Torrent</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/l0nley/Net.Torrent</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>torrent, bencode, bittorrent</PackageTags>
   </PropertyGroup>
 
 </Project>

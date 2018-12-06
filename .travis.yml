@@ -6,4 +6,4 @@ script:
  - dotnet test
  - dotnet build -c=Release
  - dotnet pack -c=Release
- - dotnet nuget push ./Net.Torrent/bin/Release/Net.Torrent.1.0.1.nupkg -s=https://www.nuget.org -k=$NUGET_KEY
+ - dotnet nuget push ./Net.Torrent/bin/Release/Net.Torrent.1.0.2.nupkg -s=https://www.nuget.org -k=$NUGET_KEY
